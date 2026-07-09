@@ -1,0 +1,9 @@
+[package]
+name = "workle"
+version = "0.1.0"
+edition = "2024"
+
+[workspace]
+members = ["parse_ngrams", "filter_ngrams", "word_list_mgmt"]
+
+[dependencies]
