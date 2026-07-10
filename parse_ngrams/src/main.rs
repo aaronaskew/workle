@@ -9,7 +9,6 @@ use nom::{
     sequence::{separated_pair, terminated},
 };
 use std::{
-    env,
     fs::File,
     io::{BufRead, BufReader, Write},
     path::PathBuf,
