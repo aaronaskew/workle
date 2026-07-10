@@ -38,10 +38,37 @@ impl Correctness {
 
         let mut correctness = [Correctness::Wrong; 5];
 
-        for (i, cg) in guess.chars().enumerate() {
-            if cg == answer.chars().nth(i).unwrap() {
+        // Check for GREEN characters (character + location)
+        for (i, (char_guess, char_answer)) in guess.chars().zip(answer.chars()).enumerate() {
+            if char_guess == char_answer {
                 correctness[i] = Correctness::Correct;
-            } else if answer.contains(cg) {
+            }
+        }
+
+        // Check for YELLOW characters
+
+        // which answer characters are already used to mark the guess?
+        let mut marked_answer_chars = [false; 5];
+        // set the green chars as marked
+        for (i, &c) in correctness.iter().enumerate() {
+            if c == Correctness::Correct {
+                marked_answer_chars[i] = true;
+            }
+        }
+
+        for (i, char_guess) in guess.char_indices() {
+            if correctness[i] == Correctness::Correct {
+                continue;
+            }
+
+            if answer.chars().enumerate().any(|(j, char_answer)| {
+                if char_guess == char_answer && !marked_answer_chars[j] {
+                    marked_answer_chars[j] = true;
+                    return true;
+                }
+
+                false
+            }) {
                 correctness[i] = Correctness::Misplaced;
             }
         }
@@ -57,4 +84,62 @@ pub struct Guess {
 
 pub trait Guesser {
     fn guess(&mut self, history: &[Guess]) -> String;
+}
+
+#[cfg(test)]
+mod tests {
+    mod compute {
+        use crate::Correctness;
+
+        macro_rules! mask {
+            (C) => {
+                Correctness::Correct
+            };
+            (M) => {
+                Correctness::Misplaced
+            };
+            (W) => {
+                Correctness::Wrong
+            };
+
+            ($($c:tt)+) => {[
+                $(mask!($c)),+
+            ]}
+        }
+
+        #[test]
+        fn all_green() {
+            assert_eq!(Correctness::compute("abcde", "abcde"), mask![C C C C C]);
+        }
+
+        #[test]
+        fn all_gray() {
+            assert_eq!(Correctness::compute("abcde", "zzzzz"), mask![W W W W W]);
+        }
+
+        #[test]
+        fn all_yellow() {
+            assert_eq!(Correctness::compute("abcde", "bcdea"), mask![M M M M M]);
+        }
+
+        #[test]
+        fn one_green() {
+            assert_eq!(Correctness::compute("abcde", "azzzz"), mask![C W W W W]);
+        }
+
+        #[test]
+        fn green_priority_over_yellow() {
+            assert_eq!(Correctness::compute("aabbb", "bbbbb"), mask![W W C C C])
+        }
+
+        #[test]
+        fn repeat_green() {
+            assert_eq!(Correctness::compute("aaabb", "aaaaa"), mask![C C C W W]);
+        }
+
+        #[test]
+        fn repeat_yellow() {
+            assert_eq!(Correctness::compute("aaabb", "cccaa"), mask![W W W M M]);
+        }
+    }
 }
